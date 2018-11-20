@@ -1,0 +1,250 @@
+---
+title: "Piloting Graph Learning in Children"
+output:
+  html_notebook: default
+  html_document:
+    df_print: paged
+  pdf_document: default
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+```{r}
+library(summarytools, quietly = TRUE)
+library(dplyr, quietly = TRUE)
+logdir='/Users/utooley/Dropbox/projects/in_progress/network_learning/code/netlearn_kids_v1/logs/'
+datadir='~/Dropbox/projects/in_progress/network_learning/code/netlearn_kids_v1/subjData/'
+exposureData <- read.delim(paste0(logdir, "CNL002/CNL002_log_run1.csv"))
+seqcmplData <- read.csv(paste0(datadir, "CNL002/seqcmpl/CNL002_log_seqcmpl.csv"))
+#omotData<- read.csv(paste0(datadir, "CNL002/OMOT/CNL002_log_omot.csv"))
+dyadicData<- read.csv(paste0(datadir, "CNL002/dyad_choice/CNL002_log_dyad_choice.csv"))
+seqcmplData$correct <- factor(seqcmplData$correct, ordered=TRUE, labels=c("Incorrect", "Correct"))
+exposureData$rt <- as.numeric(as.character(exposureData$rt))
+```
+
+## Check each assessment for data quality
+
+```{r}
+view(dfSummary(exposureData))
+view(dfSummary(seqcmplData))
+view(dfSummary(omotData))
+summary(exposureData$rt)
+```
+
+**Does RT go down or up as the task goes on?**
+
+```{r}
+plot(exposureData$TrialNumber, exposureData$rt, main="Sample Kid")
+cor.test(exposureData$TrialNumber, exposureData$rt)
+```
+It goes down (not surprisingly)!
+
+**Is RT longer after transition nodes?**
+```{r}
+exposureData$transition_node <- ifelse((exposureData$node1==4 & exposureData$node2 ==5) |(exposureData$node1 ==5 & exposureData$node2 ==4), 1, 0)
+exposureData$transition_node <- factor(exposureData$transition_node, labels=c("No", "Yes"))
+exposureData %>%  group_by(transition_node) %>% summarise(avg_rt=mean(rt), med_rt=median(rt), std_dev=sd(rt), n_trials=n())
+```
+Yes.
+
+**How long does it take with 125 nodes (of which 4 are practice trials)?**
+```{r}
+max(exposureData$onset)/60
+```
+## Sequence Completion Task
+
+How many are correct? 75%.
+```{r}
+table(seqcmplData$correct)
+```
+
+## Odd Man Out Task-Did not do
+```{r}
+view(dfSummary(omotData))
+```
+On average, 60% correct on OMOT.
+
+Does average number correct differ by trial type?
+```{r}
+omotData %>% group_by(trial_type) %>% summarise(avg_correct=mean(correct))
+```
+The 'correct' answer for catch trials is the node that is 2 edges away rather than one edge away. 72% is still above chance on the conservative trials!
+
+**Does RT differ by trial type?**
+```{r}
+omotData %>% group_by(trial_type) %>% summarise(avg_rt=mean(rt), med_rt=median(rt), std_dev=sd(rt), n_trials=n())
+```
+Average RT is highest in catch trials, lowest in conservative trials, as we would expect. Median RT is highest in non-conservative trials and lowest in conservative trials, again as we would expect.
+
+**Does RT differ by sequence-longer later in the sequence, or shorter?**
+```{r}
+cor.test(omotData$TrialNumber, omotData$rt)
+```
+Yes, it's negative, meaning that RT got faster as they went on.
+
+## Conclusions
+
+Did better than expected--100% accuracy on OMOT conservative and catch trials, 75% accuracy on sequence completion and 72% on non-conservative OMOT trials.
+RT on OMOT looks as we might expect, lowest for conservative trials, higher on non-conservative or catch trials.
+Took 27 min with 300 nodes.
+RT is not shorter on transition node (4 to 5)
+
+# Subject 2
+
+```{r}
+exposureData <- read.delim(paste0(logdir, "NL002/NL002_log_run1.csv"))
+seqcmplData <- read.csv(paste0(datadir, "NL002/seqcmpl/NL002_log_seqcmpl.csv"))
+omotData<- read.csv(paste0(datadir, "NL002/OMOT/NL002_log_omot.csv"))
+#seqcmplData$correct <- factor(seqcmplData$correct, ordered=TRUE, levels=c(1,0), labels=c("Incorrect", "Correct"))
+#omotData$correct <- factor(omotData$correct, ordered=TRUE, labels=c("Incorrect", "Correct")) #commented out because if make them factors then can't do proportion calculations on them.
+```
+
+## Check exposure data quality
+
+```{r}
+view(dfSummary(exposureData))
+summary(exposureData$rt)
+```
+
+**Does RT go down or up as the task goes on?**
+
+```{r}
+plot(exposureData$TrialNumber, exposureData$rt)
+cor.test(exposureData$TrialNumber, exposureData$rt)
+```
+It goes down (not surprisingly)!
+
+**Is RT longer after transition nodes?**
+```{r}
+exposureData$transition_node <- ifelse((exposureData$node1==4 & exposureData$node2 ==5) |(exposureData$node1 ==5 & exposureData$node2 ==4), 1, 0)
+exposureData$transition_node <- factor(exposureData$transition_node, labels=c("No", "Yes"))
+exposureData %>%  group_by(transition_node) %>% summarise(avg_rt=mean(rt), med_rt=median(rt), std_dev=sd(rt), n_trials=n())
+```
+Yes, it is!
+
+**How long does it take with 200 nodes?**
+```{r}
+max(exposureData$onset)/60
+```
+## Sequence Completion Task
+Data quality
+```{r}
+view(dfSummary(seqcmplData))
+```
+How many are correct? 100%
+```{r}
+table(seqcmplData$correct)
+```
+## Odd Man Out Task
+```{r}
+view(dfSummary(omotData))
+```
+On average, 58% correct on OMOT.
+
+Does average number correct differ by trial type?
+```{r}
+omotData %>% group_by(trial_type) %>% summarise(avg_correct=mean(correct))
+```
+The 'correct' answer for catch trials is the node that is 2 edges away rather than one edge away, but they are within the same community. 44% is still above chance on the non-conservative trials!
+
+**Does RT differ by trial type?**
+```{r}
+omotData %>% group_by(trial_type) %>% summarise(avg_rt=mean(rt), med_rt=median(rt), std_dev=sd(rt), n_trials=n())
+```
+Average and median RT is highest in non-conservative trials, lowest in conservative trials, as we would expect.
+
+**Does RT differ by sequence-longer later in the sequence, or shorter?**
+```{r}
+cor.test(omotData$TrialNumber, omotData$rt)
+```
+Not strongly so.
+
+## Conclusions
+
+Did better than expected on sequence completion--100% accuracy on sequence completion. 
+75% accuracy on OMOT catch trials, 61% on conservative trials and 44% on non-conservative trials (still above chance at 33%),
+RT on OMOT looks as we might expect, lowest for conservative trials, highest on non-conservative trials.
+Took 13 min with 200 nodes. Should I make it shorter, still?
+RT is longer on transition nodes (4 to 5 or 5 to 4).
+
+# Subject 3
+
+```{r}
+exposureData <- read.delim(paste0(logdir, "NL003/NL003_log_run1.csv"))
+seqcmplData <- read.csv(paste0(datadir, "NL003/seqcmpl/NL003_log_seqcmpl.csv"))
+omotData<- read.csv(paste0(datadir, "NL003/OMOT/NL003_log_omot.csv"))
+#seqcmplData$correct <- factor(seqcmplData$correct, ordered=TRUE, levels=c(1,0), labels=c("Incorrect", "Correct"))
+#omotData$correct <- factor(omotData$correct, ordered=TRUE, labels=c("Incorrect", "Correct")) #commented out because if make them factors then can't do proportion calculations on them.
+```
+
+## Check exposure data quality
+
+```{r}
+view(dfSummary(exposureData))
+summary(exposureData$rt)
+```
+
+**Does RT go down or up as the task goes on?**
+
+```{r}
+plot(exposureData$TrialNumber, exposureData$rt)
+cor.test(exposureData$TrialNumber, exposureData$rt)
+```
+It goes down (not surprisingly)!
+**Is RT longer after transition nodes?**
+```{r}
+exposureData$transition_node <- ifelse((exposureData$node1==4 & exposureData$node2 ==5) |(exposureData$node1 ==5 & exposureData$node2 ==4), 1, 0)
+exposureData$transition_node <- factor(exposureData$transition_node, labels=c("No", "Yes"))
+exposureData %>%  group_by(transition_node) %>% summarise(avg_rt=mean(rt), med_rt=median(rt), std_dev=sd(rt), n_trials=n())
+```
+No, it's not.
+
+**How long does it take with 200 nodes?**
+```{r}
+max(exposureData$onset)/60
+```
+## Sequence Completion Task
+Data quality
+```{r}
+view(dfSummary(seqcmplData))
+```
+How many are correct? 88%.
+```{r}
+table(seqcmplData$correct)
+```
+## Odd Man Out Task
+```{r}
+view(dfSummary(omotData))
+```
+100% correct on OMOT!
+
+Does average number correct differ by trial type?
+```{r}
+omotData %>% group_by(trial_type) %>% summarise(avg_correct=mean(correct))
+```
+NO difference.
+
+**Does RT differ by trial type?**
+```{r}
+omotData %>% group_by(trial_type) %>% summarise(avg_rt=mean(rt), med_rt=median(rt), std_dev=sd(rt), n_trials=n())
+```
+Average and median RT is highest in catch trials, lowest in conservative trials.
+
+**Does RT differ by sequence-longer later in the sequence, or shorter?**
+```{r}
+cor.test(omotData$TrialNumber, omotData$rt)
+```
+Not strongly so.
+
+## Conclusions
+
+Did better than expected! 88% accuracy on sequence completion and 100% accuracy on the OMOT.
+RT on OMOT looks as we might expect, lowest for conservative trials, highest on catch trials.
+Took 17 min with 200 nodes. Not enough variance?
+RT is not longer on transition nodes (4 to 5 or 5 to 4).
